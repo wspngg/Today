@@ -5,114 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#FBFBFD">
 <title>Verba — Dictée &amp; compte rendu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   :root{
-    --bg:#FBFBFD;
-    --surface:#FFFFFF;
-    --ink:#1D1D1F;
-    --ink-2:#6E6E73;
-    --ink-3:#A1A1A6;
-    --line:#E3E3E6;
-    --line-strong:#D2D2D7;
-    --rec:#FF3B30;
-    --rec-soft:rgba(255,59,48,.12);
-    --accent:#1D1D1F;
-    --radius:20px;
-    --radius-sm:13px;
+    --bg:#FBFBFD; --surface:#FFFFFF; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#A1A1A6;
+    --line:#E3E3E6; --line-strong:#D2D2D7; --rec:#FF3B30; --rec-soft:rgba(255,59,48,.12);
+    --radius:20px; --radius-sm:13px;
     --shadow:0 1px 2px rgba(0,0,0,.04), 0 12px 40px -12px rgba(0,0,0,.18);
     --ease:cubic-bezier(.2,.8,.2,1);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--ink);
-    line-height:1.45;
-    -webkit-font-smoothing:antialiased;
-    text-rendering:optimizeLegibility;
-    min-height:100dvh;
-  }
-  .app{
-    max-width:520px;
-    margin:0 auto;
-    min-height:100dvh;
-    display:flex;
-    flex-direction:column;
-    padding:max(20px,env(safe-area-inset-top)) 22px max(28px,env(safe-area-inset-bottom)) 22px;
-  }
+  body{background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;min-height:100dvh;}
+  .app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:max(20px,env(safe-area-inset-top)) 22px max(28px,env(safe-area-inset-bottom)) 22px;}
 
-  /* ---------- Header ---------- */
-  header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:6px 0 4px;
-  }
+  header{display:flex;align-items:center;justify-content:space-between;padding:6px 0 4px;}
   .brand{display:flex;align-items:baseline;gap:8px;}
-  .brand h1{
-    font-size:21px;
-    font-weight:700;
-    letter-spacing:-.02em;
-    margin:0;
-  }
-  .brand .dot{
-    width:7px;height:7px;border-radius:50%;
-    background:var(--rec);
-    transform:translateY(-2px);
-  }
+  .brand h1{font-size:21px;font-weight:700;letter-spacing:-.02em;margin:0;}
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--rec);transform:translateY(-2px);}
   .brand small{color:var(--ink-3);font-size:13px;font-weight:500;letter-spacing:.01em;}
 
-  /* ---------- View handling ---------- */
   .view{display:none;flex:1;flex-direction:column;animation:fade .5s var(--ease);}
   .view.active{display:flex;}
   @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 
-  /* ---------- Capture view ---------- */
   .capture{justify-content:center;align-items:center;text-align:center;}
-  .tagline{
-    font-size:30px;
-    font-weight:700;
-    letter-spacing:-.03em;
-    line-height:1.12;
-    margin:0 0 8px;
-    max-width:300px;
-  }
+  .tagline{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.12;margin:0 0 8px;max-width:300px;}
   .tagline em{font-style:normal;color:var(--ink-3);}
   .sub{color:var(--ink-2);font-size:15px;margin:0 0 40px;max-width:280px;}
 
-  .mic-wrap{
-    position:relative;
-    width:200px;height:200px;
-    display:grid;place-items:center;
-    margin-bottom:10px;
-  }
-  .ring{
-    position:absolute;inset:0;
-    border-radius:50%;
-    border:1.5px solid var(--line-strong);
-    transition:transform .12s linear, border-color .4s var(--ease), opacity .4s;
-    opacity:.0;
-  }
-  .ring.r1{opacity:.55;}
-  .ring.r2{inset:-22px;opacity:.3;}
-  .ring.r3{inset:-44px;opacity:.16;}
+  .mic-wrap{position:relative;width:200px;height:200px;display:grid;place-items:center;margin-bottom:10px;}
+  .ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--line-strong);opacity:0;transition:border-color .4s var(--ease),opacity .4s;transform-origin:center;}
+  .ring.r1{opacity:.55;} .ring.r2{inset:-22px;opacity:.3;} .ring.r3{inset:-44px;opacity:.16;}
   body.recording .ring{border-color:var(--rec);}
-  .mic-btn{
-    position:relative;
-    width:128px;height:128px;
-    border-radius:50%;
-    border:none;
-    background:var(--ink);
-    color:#fff;
-    display:grid;place-items:center;
-    cursor:pointer;
-    box-shadow:var(--shadow);
-    transition:transform .35s var(--ease), background .35s var(--ease);
-    z-index:2;
-  }
+  @keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+  body.recording .ring.r1{animation:breathe 2s var(--ease) infinite;}
+  body.recording .ring.r2{animation:breathe 2.6s var(--ease) infinite;}
+  body.recording .ring.r3{animation:breathe 3.2s var(--ease) infinite;}
+  .mic-btn{position:relative;width:128px;height:128px;border-radius:50%;border:none;background:var(--ink);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow);transition:transform .35s var(--ease),background .35s var(--ease);z-index:2;}
   .mic-btn:active{transform:scale(.94);}
-  .mic-btn svg{width:46px;height:46px;transition:transform .35s var(--ease);}
+  .mic-btn svg{width:46px;height:46px;}
   body.recording .mic-btn{background:var(--rec);}
   body.recording .mic-btn .ic-mic{display:none;}
   .ic-stop{display:none;}
@@ -120,148 +53,75 @@
 
   .status{margin-top:24px;height:24px;}
   .status .label{font-size:15px;color:var(--ink-2);font-weight:500;}
-  .timer{
-    font-variant-numeric:tabular-nums;
-    font-size:34px;font-weight:600;letter-spacing:-.02em;
-    margin-top:6px;display:none;
-  }
+  .timer{font-variant-numeric:tabular-nums;font-size:34px;font-weight:600;letter-spacing:-.02em;margin-top:6px;display:none;}
   body.recording .timer{display:block;}
   body.recording .status .idle-label{display:none;}
 
-  /* live transcript peek */
-  .live{
-    margin-top:26px;width:100%;
-    min-height:0;
-    color:var(--ink-2);font-size:16px;line-height:1.5;
-    text-align:left;
-    max-height:170px;overflow-y:auto;
-    -webkit-mask-image:linear-gradient(to bottom,transparent,#000 28px);
-            mask-image:linear-gradient(to bottom,transparent,#000 28px);
-  }
+  .live{margin-top:26px;width:100%;color:var(--ink-2);font-size:16px;line-height:1.5;text-align:left;max-height:170px;overflow-y:auto;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 28px);mask-image:linear-gradient(to bottom,transparent,#000 28px);}
   .live .interim{color:var(--ink-3);}
   .live:empty{display:none;}
 
-  /* ---------- Buttons ---------- */
-  .btn{
-    appearance:none;border:none;cursor:pointer;
-    font-family:inherit;font-size:16px;font-weight:600;letter-spacing:-.01em;
-    padding:15px 22px;border-radius:var(--radius-sm);
-    transition:transform .2s var(--ease), background .2s, opacity .2s;
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  }
+  .btn{appearance:none;border:none;cursor:pointer;font-family:inherit;font-size:16px;font-weight:600;letter-spacing:-.01em;padding:15px 22px;border-radius:var(--radius-sm);transition:transform .2s var(--ease),background .2s,opacity .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
   .btn:active{transform:scale(.97);}
   .btn-primary{background:var(--ink);color:#fff;width:100%;}
-  .btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+  .btn-primary:disabled{opacity:.4;cursor:wait;}
   .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line-strong);}
   .btn-soft{background:#F0F0F2;color:var(--ink);}
   .btn-row{display:flex;gap:10px;margin-top:14px;}
   .btn-row .btn{flex:1;}
-
   .post-actions{margin-top:30px;width:100%;display:none;}
   body.has-text:not(.recording) .post-actions{display:block;}
 
-  /* ---------- Report view ---------- */
-  .report-head{
-    display:flex;align-items:center;gap:14px;margin:8px 0 20px;
-  }
-  .icon-btn{
-    width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line-strong);
-    background:var(--surface);display:grid;place-items:center;cursor:pointer;flex:none;
-    transition:background .2s;
-  }
+  .report-head{display:flex;align-items:center;gap:14px;margin:8px 0 20px;}
+  .icon-btn{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;cursor:pointer;flex:none;transition:background .2s;}
   .icon-btn:active{background:#F0F0F2;}
   .icon-btn svg{width:18px;height:18px;}
   .report-head h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0;}
 
-  .doc{
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    box-shadow:var(--shadow);
-    overflow:hidden;
-    flex:1;
-    display:flex;flex-direction:column;
-  }
+  .doc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;flex:1;display:flex;flex-direction:column;}
   .doc-inner{padding:26px 24px;overflow-y:auto;flex:1;}
-  .doc .meta-label{
-    font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--ink-3);margin:0 0 6px;
-  }
-  .doc h3[contenteditable]{
-    font-size:25px;font-weight:700;letter-spacing:-.025em;line-height:1.15;
-    margin:0 0 4px;outline:none;
-  }
-  .doc h3:focus{color:#000;}
+  .doc .meta-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px;}
+  .doc h3[contenteditable]{font-size:25px;font-weight:700;letter-spacing:-.025em;line-height:1.15;margin:0 0 4px;outline:none;}
   .doc .date{color:var(--ink-2);font-size:14px;margin:0 0 22px;}
   .doc hr{border:none;border-top:1px solid var(--line);margin:0 0 22px;}
-
   .doc-section{margin-bottom:26px;}
-  .doc-section .sec-title{
-    font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--ink);margin:0 0 12px;display:flex;align-items:center;gap:8px;
-  }
-  .doc-section .sec-title::before{
-    content:"";width:5px;height:5px;border-radius:50%;background:var(--rec);
-  }
+  .doc-section .sec-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .doc-section .sec-title::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--rec);}
   .doc-body[contenteditable]{outline:none;font-size:16px;color:var(--ink);line-height:1.6;}
-  .doc-body[contenteditable]:focus{outline:none;}
   .doc-body p{margin:0 0 12px;}
   .doc ul{margin:0;padding-left:20px;}
   .doc li{margin-bottom:8px;font-size:16px;line-height:1.5;}
   .doc li::marker{color:var(--rec);}
 
-  .export-bar{
-    display:flex;gap:10px;padding:14px;border-top:1px solid var(--line);
-    background:rgba(251,251,253,.85);backdrop-filter:saturate(180%) blur(10px);
-  }
+  .export-bar{display:flex;gap:10px;padding:14px;border-top:1px solid var(--line);background:rgba(251,251,253,.85);backdrop-filter:saturate(180%) blur(10px);}
   .export-bar .btn{flex:1;font-size:14px;padding:13px 10px;}
 
-  /* ---------- Toast ---------- */
-  .toast{
-    position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(60px);
-    background:var(--ink);color:#fff;font-size:14px;font-weight:500;
-    padding:12px 20px;border-radius:100px;box-shadow:var(--shadow);
-    opacity:0;transition:transform .4s var(--ease),opacity .4s;z-index:50;pointer-events:none;
-  }
+  .toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(60px);background:var(--ink);color:#fff;font-size:14px;font-weight:500;padding:12px 20px;border-radius:100px;box-shadow:var(--shadow);opacity:0;transition:transform .4s var(--ease),opacity .4s;z-index:50;pointer-events:none;}
   .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 
-  /* ---------- Unsupported notice ---------- */
-  .notice{
-    background:var(--rec-soft);border:1px solid rgba(255,59,48,.25);
-    color:#8A1B14;border-radius:var(--radius-sm);padding:14px 16px;
-    font-size:14px;line-height:1.5;margin-top:18px;display:none;
-  }
+  .notice{background:var(--rec-soft);border:1px solid rgba(255,59,48,.25);color:#8A1B14;border-radius:var(--radius-sm);padding:14px 16px;font-size:14px;line-height:1.5;margin-top:18px;display:none;}
   .notice.show{display:block;}
 
-  @media (prefers-reduced-motion:reduce){
-    *{animation:none !important;transition:none !important;}
-  }
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;}}
 </style>
 </head>
 <body>
 <div class="app">
 
   <header>
-    <div class="brand">
-      <span class="dot"></span>
-      <h1>Verba</h1>
-    </div>
+    <div class="brand"><span class="dot"></span><h1>Verba</h1></div>
     <small>Dictée &amp; compte rendu</small>
   </header>
 
-  <!-- ============ VIEW 1 : CAPTURE ============ -->
   <section class="view capture active" id="captureView">
     <h2 class="tagline">Parlez.<br><em>Le compte rendu s'écrit.</em></h2>
     <p class="sub">Appuyez sur le micro et dictez. Verba transcrit en direct, puis structure tout en un compte rendu prêt à partager.</p>
 
     <div class="mic-wrap">
-      <div class="ring r3"></div>
-      <div class="ring r2"></div>
-      <div class="ring r1"></div>
+      <div class="ring r3"></div><div class="ring r2"></div><div class="ring r1"></div>
       <button class="mic-btn" id="micBtn" aria-label="Démarrer la dictée">
         <svg class="ic-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
         </svg>
         <svg class="ic-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2.5"/></svg>
       </button>
@@ -275,7 +135,7 @@
     <div class="live" id="live" aria-live="polite"></div>
 
     <div class="notice" id="notice">
-      La reconnaissance vocale n'est pas disponible sur ce navigateur. Pour de meilleurs résultats, ouvrez Verba dans <strong>Chrome</strong> ou <strong>Edge</strong> (sur iPhone, utilisez Safari avec micro autorisé).
+      La reconnaissance vocale n'est pas disponible sur ce navigateur. Ouvrez Verba dans <strong>Chrome</strong> ou <strong>Edge</strong> (sur iPhone, Safari avec micro autorisé).
     </div>
 
     <div class="post-actions" id="postActions">
@@ -287,7 +147,6 @@
     </div>
   </section>
 
-  <!-- ============ VIEW 2 : REPORT ============ -->
   <section class="view" id="reportView">
     <div class="report-head">
       <button class="icon-btn" id="backBtn" aria-label="Retour">
@@ -302,233 +161,145 @@
         <h3 contenteditable="true" id="docTitle">Compte rendu de réunion</h3>
         <p class="date" id="docDate"></p>
         <hr>
-
         <div class="doc-section">
           <p class="sec-title">Synthèse</p>
           <div class="doc-body" contenteditable="true" id="docBody"></div>
         </div>
-
         <div class="doc-section" id="actionsSection" style="display:none;">
           <p class="sec-title">Actions à suivre</p>
           <ul id="docActions"></ul>
         </div>
       </div>
-
       <div class="export-bar">
         <button class="btn btn-soft" id="copyBtn">Copier</button>
         <button class="btn btn-soft" id="downloadBtn">Markdown</button>
-        <button class="btn btn-primary" id="printBtn">PDF</button>
+        <button class="btn btn-primary" id="pdfBtn">PDF</button>
       </div>
     </div>
   </section>
 
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
 (function(){
   "use strict";
-
   const $ = id => document.getElementById(id);
   const body = document.body;
 
-  // ---- Elements
-  const micBtn = $("micBtn"), timerEl = $("timer"), liveEl = $("live");
-  const postActions = $("postActions"), notice = $("notice");
-  const generateBtn = $("generateBtn"), continueBtn = $("continueBtn"), clearBtn = $("clearBtn");
-  const captureView = $("captureView"), reportView = $("reportView");
-  const docTitle = $("docTitle"), docDate = $("docDate"), docBody = $("docBody");
-  const actionsSection = $("actionsSection"), docActions = $("docActions"), backBtn = $("backBtn");
-  const copyBtn = $("copyBtn"), downloadBtn = $("downloadBtn"), printBtn = $("printBtn");
-  const toast = $("toast");
-  const rings = document.querySelectorAll(".ring");
+  const micBtn=$("micBtn"), timerEl=$("timer"), liveEl=$("live");
+  const notice=$("notice"), generateBtn=$("generateBtn"), continueBtn=$("continueBtn"), clearBtn=$("clearBtn");
+  const captureView=$("captureView"), reportView=$("reportView");
+  const docTitle=$("docTitle"), docDate=$("docDate"), docBody=$("docBody");
+  const actionsSection=$("actionsSection"), docActions=$("docActions"), backBtn=$("backBtn");
+  const copyBtn=$("copyBtn"), downloadBtn=$("downloadBtn"), pdfBtn=$("pdfBtn"), toast=$("toast");
 
-  // ---- State
-  let finalText = "";        // committed transcript
-  let recognizing = false;
-  let recognition = null;
-  let startTime = 0, timerInt = null;
-  let audioCtx = null, analyser = null, micStream = null, rafId = null;
+  let finalText="", recognizing=false, recognition=null;
+  let startTime=0, elapsed=0, timerInt=null;
 
-  // ---- Speech recognition setup
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR){
-    notice.classList.add("show");
-    micBtn.disabled = true;
-    micBtn.style.opacity = ".4";
-  }
+  if(!SR){ notice.classList.add("show"); micBtn.disabled=true; micBtn.style.opacity=".4"; }
 
   function buildRecognition(){
     const r = new SR();
-    r.lang = "fr-FR";
-    r.continuous = true;
-    r.interimResults = true;
-
+    r.lang="fr-FR"; r.continuous=true; r.interimResults=true;
     r.onresult = (e)=>{
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++){
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal){ finalText += t.trim() + " "; }
-        else { interim += t; }
+      let interim="";
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const t=e.results[i][0].transcript;
+        if(e.results[i].isFinal){ finalText += t.trim()+" "; } else { interim += t; }
       }
       renderLive(interim);
     };
     r.onerror = (e)=>{
-      if (e.error === "not-allowed" || e.error === "service-not-allowed"){
-        showToast("Micro refusé. Autorisez l'accès au microphone.");
-        stop();
-      }
+      if(e.error==="not-allowed"||e.error==="service-not-allowed"){ showToast("Micro refusé. Autorisez l'accès au microphone."); stop(); }
     };
-    r.onend = ()=>{
-      // Auto-restart while user is still recording (handles silence timeouts)
-      if (recognizing){ try{ r.start(); }catch(_){} }
-    };
+    // Auto-restart on silence timeout, but ONLY if this is still the active session
+    r.onend = ()=>{ if(recognizing && recognition===r){ try{ r.start(); }catch(_){} } };
     return r;
   }
 
   function renderLive(interim){
-    const safe = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+    const safe = s => s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
     liveEl.innerHTML = safe(finalText) + (interim ? '<span class="interim">'+safe(interim)+'</span>' : "");
     liveEl.scrollTop = liveEl.scrollHeight;
-    body.classList.toggle("has-text", finalText.trim().length > 0);
+    body.classList.toggle("has-text", finalText.trim().length>0);
   }
 
-  // ---- Audio level → reactive rings
-  async function startAudioMeter(){
-    try{
-      micStream = await navigator.mediaDevices.getUserMedia({audio:true});
-      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-      const src = audioCtx.createMediaStreamSource(micStream);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 512;
-      src.connect(analyser);
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      const loop = ()=>{
-        analyser.getByteTimeDomainData(data);
-        let sum = 0;
-        for (let i=0;i<data.length;i++){ const v=(data[i]-128)/128; sum += v*v; }
-        const rms = Math.sqrt(sum/data.length);          // 0..~0.4
-        const level = Math.min(1, rms * 3.2);
-        rings.forEach((ring,i)=>{
-          const s = 1 + level * (0.10 + i*0.06);
-          ring.style.transform = "scale("+s.toFixed(3)+")";
-        });
-        rafId = requestAnimationFrame(loop);
-      };
-      loop();
-    }catch(_){ /* level meter optional */ }
-  }
-  function stopAudioMeter(){
-    if (rafId) cancelAnimationFrame(rafId);
-    rings.forEach(r=>r.style.transform="");
-    if (micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
-    if (audioCtx){ audioCtx.close().catch(()=>{}); audioCtx=null; }
-  }
-
-  // ---- Timer
   function tick(){
-    const s = Math.floor((Date.now()-startTime)/1000);
-    const m = String(Math.floor(s/60)).padStart(2,"0");
-    timerEl.textContent = m+":"+String(s%60).padStart(2,"0");
+    const s = Math.floor((Date.now()-startTime+elapsed)/1000);
+    timerEl.textContent = String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
   }
 
-  // ---- Start / Stop
   function start(){
-    if (!SR) return;
+    if(!SR || recognizing) return;
     recognition = buildRecognition();
-    try{ recognition.start(); }catch(_){}
     recognizing = true;
     body.classList.add("recording");
     micBtn.setAttribute("aria-label","Arrêter la dictée");
-    startTime = Date.now() - (timerEl.dataset.elapsed ? +timerEl.dataset.elapsed : 0);
-    tick(); timerInt = setInterval(tick, 250);
-    startAudioMeter();
+    startTime = Date.now();
+    tick(); timerInt = setInterval(tick,250);
+    try{ recognition.start(); }catch(_){}
   }
+
   function stop(){
     recognizing = false;
     body.classList.remove("recording");
     micBtn.setAttribute("aria-label","Démarrer la dictée");
-    if (recognition){ try{ recognition.stop(); }catch(_){} }
+    if(recognition){
+      recognition.onend=null; recognition.onresult=null; recognition.onerror=null;
+      try{ recognition.stop(); }catch(_){}
+      recognition=null;
+    }
     clearInterval(timerInt);
-    timerEl.dataset.elapsed = Date.now()-startTime;
-    stopAudioMeter();
+    elapsed += Date.now()-startTime;
     renderLive("");
   }
 
   micBtn.addEventListener("click", ()=> recognizing ? stop() : start());
-
   continueBtn.addEventListener("click", ()=>{ if(!recognizing) start(); });
   clearBtn.addEventListener("click", ()=>{
-    finalText = ""; timerEl.dataset.elapsed = 0; timerEl.textContent="00:00";
-    renderLive(""); showToast("Dictée effacée");
+    finalText=""; elapsed=0; timerEl.textContent="00:00"; renderLive(""); showToast("Dictée effacée");
   });
 
-  // ---- Report generation (fully local, no external AI)
-  function clean(t){
-    return t.replace(/\s+/g," ")
-            .replace(/\s+([.,;:!?])/g,"$1")
-            .trim();
-  }
+  // ---- Local report generation
+  function clean(t){ return t.replace(/\s+/g," ").replace(/\s+([.,;:!?])/g,"$1").trim(); }
   function splitSentences(t){
-    return clean(t)
-      .replace(/([.!?])\s+/g,"$1\u0001")
-      .split("\u0001")
-      .map(s=>s.trim())
-      .filter(Boolean)
-      .map(s=>{
-        s = s.charAt(0).toUpperCase()+s.slice(1);
-        if (!/[.!?]$/.test(s)) s += ".";
-        return s;
-      });
+    return clean(t).replace(/([.!?])\s+/g,"$1\u0001").split("\u0001").map(s=>s.trim()).filter(Boolean)
+      .map(s=>{ s=s.charAt(0).toUpperCase()+s.slice(1); if(!/[.!?]$/.test(s)) s+="."; return s; });
   }
-  const ACTION_RE = /\b(il faut|il faudra|on doit|nous devons|je dois|à faire|prévoir|relancer|envoyer|préparer|organiser|valider|vérifier|contacter|planifier|action|todo|tâche|deadline|échéance|d'ici)\b/i;
+  const ACTION_RE=/\b(il faut|il faudra|on doit|nous devons|je dois|à faire|prévoir|relancer|envoyer|préparer|organiser|valider|vérifier|contacter|planifier|action|todo|tâche|deadline|échéance|d'ici)\b/i;
 
   function generateReport(){
     const sentences = splitSentences(finalText);
-    if (sentences.length === 0){ showToast("Rien à transcrire pour l'instant"); return; }
-
-    const actions = [], summary = [];
-    sentences.forEach(s => (ACTION_RE.test(s) ? actions : summary).push(s));
-
-    // Group summary into paragraphs of ~3 sentences
-    docBody.innerHTML = "";
+    if(!sentences.length){ showToast("Rien à transcrire pour l'instant"); return; }
+    const actions=[], summary=[];
+    sentences.forEach(s=> (ACTION_RE.test(s)?actions:summary).push(s));
+    docBody.innerHTML="";
     const pool = summary.length ? summary : sentences;
-    for (let i=0;i<pool.length;i+=3){
-      const p = document.createElement("p");
-      p.textContent = pool.slice(i,i+3).join(" ");
-      docBody.appendChild(p);
+    for(let i=0;i<pool.length;i+=3){
+      const p=document.createElement("p"); p.textContent=pool.slice(i,i+3).join(" "); docBody.appendChild(p);
     }
-
-    docActions.innerHTML = "";
-    if (actions.length){
-      actions.forEach(a=>{
-        const li = document.createElement("li");
-        li.textContent = a;
-        docActions.appendChild(li);
-      });
-      actionsSection.style.display = "block";
-    } else {
-      actionsSection.style.display = "none";
-    }
-
-    const now = new Date();
+    docActions.innerHTML="";
+    if(actions.length){
+      actions.forEach(a=>{ const li=document.createElement("li"); li.textContent=a; docActions.appendChild(li); });
+      actionsSection.style.display="block";
+    } else { actionsSection.style.display="none"; }
+    const now=new Date();
     docDate.textContent = now.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})
-      + " · " + now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-
-    captureView.classList.remove("active");
-    reportView.classList.add("active");
+      +" · "+now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    captureView.classList.remove("active"); reportView.classList.add("active");
   }
   generateBtn.addEventListener("click", generateReport);
   backBtn.addEventListener("click", ()=>{ reportView.classList.remove("active"); captureView.classList.add("active"); });
 
-  // ---- Export helpers
+  // ---- Exports
   function reportToMarkdown(){
     let md = "# "+docTitle.textContent.trim()+"\n\n_"+docDate.textContent+"_\n\n## Synthèse\n\n";
-    docBody.querySelectorAll("p").forEach(p=>{ md += p.textContent.trim()+"\n\n"; });
-    if (actionsSection.style.display !== "none"){
-      md += "## Actions à suivre\n\n";
-      docActions.querySelectorAll("li").forEach(li=>{ md += "- "+li.textContent.trim()+"\n"; });
+    docBody.querySelectorAll("p").forEach(p=>{ if(p.textContent.trim()) md+=p.textContent.trim()+"\n\n"; });
+    if(actionsSection.style.display!=="none"){
+      md+="## Actions à suivre\n\n";
+      docActions.querySelectorAll("li").forEach(li=>{ md+="- "+li.textContent.trim()+"\n"; });
     }
     return md.trim()+"\n";
   }
@@ -537,32 +308,52 @@
     catch(_){ showToast("Copie impossible sur ce navigateur"); }
   });
   downloadBtn.addEventListener("click", ()=>{
-    const blob = new Blob([reportToMarkdown()],{type:"text/markdown"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "compte-rendu-"+new Date().toISOString().slice(0,10)+".md";
-    a.click(); URL.revokeObjectURL(a.href);
-    showToast("Markdown téléchargé");
+    const blob=new Blob([reportToMarkdown()],{type:"text/markdown"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="compte-rendu-"+new Date().toISOString().slice(0,10)+".md";
+    a.click(); URL.revokeObjectURL(a.href); showToast("Markdown téléchargé");
   });
-  printBtn.addEventListener("click", ()=> window.print());
 
-  // ---- Toast
-  let toastT;
-  function showToast(msg){
-    toast.textContent = msg; toast.classList.add("show");
-    clearTimeout(toastT); toastT = setTimeout(()=>toast.classList.remove("show"),2200);
+  // ---- PDF via html2pdf.js (styled, mobile-friendly)
+  function buildPdfNode(){
+    const esc = s => s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+    let bodyHtml="";
+    docBody.querySelectorAll("p").forEach(p=>{ if(p.textContent.trim()) bodyHtml+="<p style='margin:0 0 12px;line-height:1.6;font-size:13px;'>"+esc(p.textContent.trim())+"</p>"; });
+    let actionsHtml="";
+    if(actionsSection.style.display!=="none"){
+      let items="";
+      docActions.querySelectorAll("li").forEach(li=>{ items+="<li style='margin-bottom:8px;line-height:1.5;font-size:13px;'>"+esc(li.textContent.trim())+"</li>"; });
+      actionsHtml="<h2 style='font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#1D1D1F;margin:26px 0 12px;'>Actions à suivre</h2><ul style='margin:0;padding-left:18px;'>"+items+"</ul>";
+    }
+    const node=document.createElement("div");
+    node.style.cssText="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1D1D1F;padding:8px 6px;";
+    node.innerHTML=
+      "<div style='height:4px;width:46px;background:#FF3B30;border-radius:4px;margin-bottom:18px;'></div>"+
+      "<div style='font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#A1A1A6;margin-bottom:6px;'>Compte rendu · Verba</div>"+
+      "<h1 style='font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;'>"+esc(docTitle.textContent.trim())+"</h1>"+
+      "<div style='font-size:12px;color:#6E6E73;margin-bottom:18px;'>"+esc(docDate.textContent)+"</div>"+
+      "<div style='border-top:1px solid #E3E3E6;margin-bottom:20px;'></div>"+
+      "<h2 style='font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#1D1D1F;margin:0 0 12px;'>Synthèse</h2>"+
+      bodyHtml + actionsHtml;
+    return node;
   }
+  pdfBtn.addEventListener("click", ()=>{
+    const fname="compte-rendu-"+new Date().toISOString().slice(0,10)+".pdf";
+    if(typeof html2pdf==="undefined"){ showToast("Génération PDF indisponible — j'ouvre l'impression"); window.print(); return; }
+    pdfBtn.disabled=true; pdfBtn.textContent="…";
+    const opt={ margin:[14,12,16,12], filename:fname, image:{type:"jpeg",quality:.98},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
+      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"} };
+    html2pdf().set(opt).from(buildPdfNode()).save()
+      .then(()=>showToast("PDF enregistré"))
+      .catch(()=>{ showToast("Erreur PDF — j'ouvre l'impression"); window.print(); })
+      .finally(()=>{ pdfBtn.disabled=false; pdfBtn.textContent="PDF"; });
+  });
+
+  let toastT;
+  function showToast(msg){ toast.textContent=msg; toast.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>toast.classList.remove("show"),2200); }
 })();
 </script>
-
-<style media="print">
-  @page{margin:24mm 20mm;}
-  body{background:#fff;}
-  header,.export-bar,.report-head,.toast,.notice{display:none !important;}
-  .view{display:none !important;}
-  #reportView{display:block !important;}
-  .doc{border:none;box-shadow:none;}
-  .doc-inner{padding:0;}
-</style>
 </body>
 </html>
