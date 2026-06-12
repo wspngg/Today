@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#FBFBFD">
 <title>Verba — Dictée &amp; compte rendu</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --bg:#FBFBFD; --surface:#FFFFFF; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#A1A1A6;
@@ -315,40 +315,68 @@
     a.click(); URL.revokeObjectURL(a.href); showToast("Markdown téléchargé");
   });
 
-  // ---- PDF via html2pdf.js (styled, mobile-friendly)
-  function buildPdfNode(){
-    const esc = s => s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-    let bodyHtml="";
-    docBody.querySelectorAll("p").forEach(p=>{ if(p.textContent.trim()) bodyHtml+="<p style='margin:0 0 12px;line-height:1.6;font-size:13px;'>"+esc(p.textContent.trim())+"</p>"; });
-    let actionsHtml="";
-    if(actionsSection.style.display!=="none"){
-      let items="";
-      docActions.querySelectorAll("li").forEach(li=>{ items+="<li style='margin-bottom:8px;line-height:1.5;font-size:13px;'>"+esc(li.textContent.trim())+"</li>"; });
-      actionsHtml="<h2 style='font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#1D1D1F;margin:26px 0 12px;'>Actions à suivre</h2><ul style='margin:0;padding-left:18px;'>"+items+"</ul>";
+  // ---- PDF via jsPDF (texte natif, fiable sur mobile)
+  function generatePdf(){
+    if(!window.jspdf || !window.jspdf.jsPDF){
+      showToast("PDF indisponible — j'ouvre l'impression"); window.print(); return;
     }
-    const node=document.createElement("div");
-    node.style.cssText="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1D1D1F;padding:8px 6px;";
-    node.innerHTML=
-      "<div style='height:4px;width:46px;background:#FF3B30;border-radius:4px;margin-bottom:18px;'></div>"+
-      "<div style='font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#A1A1A6;margin-bottom:6px;'>Compte rendu · Verba</div>"+
-      "<h1 style='font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;'>"+esc(docTitle.textContent.trim())+"</h1>"+
-      "<div style='font-size:12px;color:#6E6E73;margin-bottom:18px;'>"+esc(docDate.textContent)+"</div>"+
-      "<div style='border-top:1px solid #E3E3E6;margin-bottom:20px;'></div>"+
-      "<h2 style='font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#1D1D1F;margin:0 0 12px;'>Synthèse</h2>"+
-      bodyHtml + actionsHtml;
-    return node;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:"mm", format:"a4"});
+    const PW=210, ML=18, MR=18, W=PW-ML-MR, BOTTOM=282;
+    let y=20;
+    const ensure = h => { if(y+h>BOTTOM){ doc.addPage(); y=20; } };
+
+    // Filet rouge
+    doc.setFillColor(255,59,48); doc.rect(ML,y,16,1.6,"F"); y+=8;
+    // Eyebrow
+    doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(161,161,166);
+    doc.text("COMPTE RENDU · VERBA", ML, y); y+=7;
+    // Titre
+    doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(29,29,31);
+    doc.splitTextToSize(docTitle.textContent.trim()||"Compte rendu", W).forEach(line=>{ ensure(8); doc.text(line, ML, y); y+=8; });
+    y+=1;
+    // Date
+    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(110,110,115);
+    doc.text(docDate.textContent, ML, y); y+=6;
+    // Filet de séparation
+    doc.setDrawColor(220,220,224); doc.line(ML,y,PW-MR,y); y+=8;
+
+    const heading = label => {
+      ensure(10);
+      doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(29,29,31);
+      doc.text(label.toUpperCase(), ML, y); y+=6.5;
+    };
+
+    // Synthèse
+    heading("Synthèse");
+    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(29,29,31);
+    docBody.querySelectorAll("p").forEach(p=>{
+      const txt=p.textContent.trim(); if(!txt) return;
+      doc.splitTextToSize(txt, W).forEach(line=>{ ensure(6); doc.text(line, ML, y); y+=5.6; });
+      y+=3;
+    });
+
+    // Actions à suivre
+    if(actionsSection.style.display!=="none"){
+      y+=3; heading("Actions à suivre");
+      doc.setFont("helvetica","normal"); doc.setFontSize(11);
+      docActions.querySelectorAll("li").forEach(li=>{
+        const txt=li.textContent.trim(); if(!txt) return;
+        const lines=doc.splitTextToSize(txt, W-6);
+        ensure(lines.length*5.6+2);
+        doc.setFillColor(255,59,48); doc.circle(ML+1.3, y-1.5, 0.9, "F");
+        doc.setTextColor(29,29,31);
+        lines.forEach(line=>{ doc.text(line, ML+6, y); y+=5.6; });
+        y+=1.5;
+      });
+    }
+
+    doc.save("compte-rendu-"+new Date().toISOString().slice(0,10)+".pdf");
+    showToast("PDF enregistré");
   }
   pdfBtn.addEventListener("click", ()=>{
-    const fname="compte-rendu-"+new Date().toISOString().slice(0,10)+".pdf";
-    if(typeof html2pdf==="undefined"){ showToast("Génération PDF indisponible — j'ouvre l'impression"); window.print(); return; }
-    pdfBtn.disabled=true; pdfBtn.textContent="…";
-    const opt={ margin:[14,12,16,12], filename:fname, image:{type:"jpeg",quality:.98},
-      html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
-      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"} };
-    html2pdf().set(opt).from(buildPdfNode()).save()
-      .then(()=>showToast("PDF enregistré"))
-      .catch(()=>{ showToast("Erreur PDF — j'ouvre l'impression"); window.print(); })
-      .finally(()=>{ pdfBtn.disabled=false; pdfBtn.textContent="PDF"; });
+    try{ generatePdf(); }
+    catch(err){ console.error(err); showToast("Erreur PDF — j'ouvre l'impression"); window.print(); }
   });
 
   let toastT;
